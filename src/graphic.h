@@ -1,5 +1,6 @@
 #ifndef CANH_GRAPHIC_H
 #define CANH_GRAPHIC_H
+
 #include "board.h"
 #include "util.h"
 
@@ -57,31 +58,36 @@ public:
     };
 
     typedef uint32_t Size;
-
-    static const Size SPRITE_WIDTH_UNIT;
-    static const Size SPRITE_HEIGHT_UNIT;
+    typedef int32_t Pos;
 
     static void showError(const std::string &);
 
     Graphic(const std::string &title, Size w, Size h);
     ~Graphic();
 
-    void draw(const Board &, const Util::Rect &);
-    Board::PosPair getBoardPos(const Board &, const Util::Rect &,
-        uint32_t x, uint32_t y);
+    void setBoard(Board *board, const SDL_Rect &boardRect);
+    Board::Pos getBoardPos(Pos x, Pos y);
+
+    void draw();
 
 private:
-    static Size s_nIns;
-    static std::vector<SDL_Rect> SPRITE_RECTS;
     static const std::string SPRITE_PATH;
+    static std::vector<SDL_Rect> SPRITE_RECTS;
+
+    static Size s_nIns;
+
     static void initSpriteRects();
 
     SDL_Window *m_window;
     SDL_Renderer *m_renderer;
     SDL_Texture *m_spriteTexture;
 
-    SDL_Rect getSpriteRect(const Board &, Board::Pos, Board::Pos);
+    Board *m_board;
+    SDL_Rect m_boardRect;
+    Size m_cellWidth;
+    Size m_cellHeight;
 
+    SDL_Rect getSpriteRect(Board::Pos p);
 };
 
 #endif

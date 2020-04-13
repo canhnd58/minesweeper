@@ -6,10 +6,15 @@
 
 std::vector<Board::Pos> Board::getNeighbors(Board::Pos p) const
 {
+    std::vector<Pos> neighbors;
+    if (p == POS_UNDEFINED)
+    {
+        return neighbors;
+    }
+
     Pos r = p / m_nCols;
     Pos c = p % m_nCols;
 
-    std::vector<Pos> pos;
     for (Pos i = -1; i <= 1; i ++)
     {
         for (Pos j = -1; j <= 1; j++)
@@ -18,17 +23,15 @@ std::vector<Board::Pos> Board::getNeighbors(Board::Pos p) const
             Pos x = c + j;
             if (0 <= y && y < m_nRows && 0 <= x && x < m_nCols)
             {
-                pos.push_back(y * m_nCols + x);
+                neighbors.push_back(y * m_nCols + x);
             }
         }
     }
-    return pos;
+    return neighbors;
 }
 
-void Board::initCellValues(Board::Pos safeRow, Board::Pos safeCol)
+void Board::initCellValues(Board::Pos safePos)
 {
-    Pos safePos = safeRow * m_nCols + safeCol;
-
     std::vector<Size> mines(m_nRows * m_nCols);
     for (Size i = 0; i < mines.size(); i ++)
     {
@@ -56,89 +59,83 @@ void Board::initCellValues(Board::Pos safeRow, Board::Pos safeCol)
     m_nMines = nMines;
 }
 
-void Board::open(Board::Pos r, Board::Pos c) {
-    if (r == POS_UNDEFINED || c == POS_UNDEFINED)
+void Board::open(Board::Pos p)
+{
+    if (p == POS_UNDEFINED || m_state == WON || m_state == LOST)
     {
         return;
     }
 
     if (m_state == INIT)
     {
-        initCellValues(r, c);
+        initCellValues(p);
         m_state = PLAYING;
     }
 
-    if (m_state != PLAYING)
+    m_lastPos = p;
+    openRecur(p);
+
+    if (m_state != LOST && m_nHidden == m_nMines)
     {
-        return;
+        m_state = WON;
+    }
+}
+
+void Board::openRecur(Board::Pos p)
+{
+    if (m_cells[p].m_state != Cell::SHOWN)
+    {
+        m_cells[p].m_state = Cell::SHOWN;
+        m_nHidden --;
     }
 
-    m_lastPos = PosPair(r, c);
-
-    if (at(r, c).m_value == Cell::MINE)
+    if (m_cells[p].m_value == Cell::MINE)
     {
         m_state = LOST;
+        return;
     }
-    else
+
+    std::vector<Pos> neighbors = getNeighbors(p);
+    Size nMineFound = 0;
+
+    for (Pos np: neighbors)
     {
-        open(r * m_nCols + c);
-        if (m_nHidden == m_nMines)
+        if (m_cells[np].m_state == Cell::FLAGGED)
         {
-            m_state = WON;
+            nMineFound ++;
+        }
+    }
+
+    if (nMineFound >= m_cells[p].m_value)
+    {
+        for (Pos np : neighbors)
+        {
+            if (m_cells[np].m_state != Cell::SHOWN 
+                && m_cells[np].m_state != Cell::FLAGGED)
+            {
+                openRecur(np);
+            }
         }
     }
 }
 
-void Board::open(Board::Pos p)
+void Board::nextState(Board::Pos p)
 {
-    if (m_cells[p].m_state == Cell::SHOWN)
+    if (p == POS_UNDEFINED)
     {
         return;
     }
 
-    m_cells[p].m_state = Cell::SHOWN;
-    m_nHidden --;
-
-    if (m_cells[p].m_value == 0)
-    {
-        for (Pos np : getNeighbors(p))
-        {
-            open(np);
-        }
-    }
-}
-
-Board::Cell& Board::at(Board::Pos r, Board::Pos c)
-{
-    ASSERT(r >= 0 && r < m_nRows);
-    ASSERT(c >= 0 && c < m_nCols);
-    return m_cells[r * m_nCols + c];
-}
-
-const Board::Cell& Board::at(Board::Pos r, Board::Pos c) const
-{
-    ASSERT(r >= 0 && r < m_nRows);
-    ASSERT(c >= 0 && c < m_nCols);
-    return m_cells[r * m_nCols + c];
-}
-
-void Board::nextState(Board::Pos r, Board::Pos c)
-{
-    if (r == POS_UNDEFINED || c == POS_UNDEFINED)
-    {
-        return;
-    }
-
-    switch (at(r, c).m_state)
+    switch (m_cells[p].m_state)
     {
         case Cell::HIDDEN:
-            at(r, c).m_state = Cell::FLAGGED;
+            m_cells[p].m_state = Cell::FLAGGED;
             break;
         case Cell::FLAGGED:
-            at(r, c).m_state = Cell::UNKNOWN;
+            m_cells[p].m_state = Cell::UNKNOWN;
             break;
         case Cell::UNKNOWN:
-            at(r, c).m_state = Cell::HIDDEN;
+            m_cells[p].m_state = Cell::HIDDEN;
             break;
         default:
             break;

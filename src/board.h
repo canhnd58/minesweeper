@@ -14,17 +14,10 @@ public:
 
     static const Pos POS_UNDEFINED = -1;
 
-    struct PosPair
-    {
-        Pos r, c;
-        PosPair(Pos r, Pos c) : r(r), c(c) {}
-        PosPair() : r(POS_UNDEFINED), c(POS_UNDEFINED) {}
-    };
-
     class Cell
     {
     public:
-        typedef uint16_t Value;
+        typedef uint8_t Value;
         static const Value MINE = 9;
 
         enum State
@@ -59,18 +52,12 @@ public:
         m_nMines(nMines),
         m_nHidden(nRows * nCols),
         m_lastPos(),
-        m_cells(std::vector<Cell>(nRows * nCols))
+        m_cells(nRows * nCols)
     {
     }
 
-    Cell::State getState(Pos r, Pos c) const
-    {
-        return const_cast<const Cell &>(at(r, c)).m_state;
-    }
-    Cell::Value getValue(Pos r, Pos c) const
-    {
-        return const_cast<const Cell &>(at(r, c)).m_value;
-    }
+    Cell::State getState(Pos p) const { return m_cells[p].m_state; }
+    Cell::Value getValue(Pos p) const { return m_cells[p].m_value; }
 
     bool isWon() const { return m_state == WON; }
     bool isLost() const { return m_state == LOST; }
@@ -78,11 +65,14 @@ public:
     Size getNRows() const { return m_nRows; }
     Size getNCols() const { return m_nCols; }
     Size getNMines() const { return m_nMines; }
+    Size getNCells() const { return m_nRows * m_nCols; }
 
-    PosPair getLastOpenedPos() const { return m_lastPos; }
+    Pos convertPos(Pos r, Pos c) const { return r * m_nCols + c; }
+    Pos getLastOpenedPos() const { return m_lastPos; }
+    std::vector<Pos> getNeighbors(Pos p) const;
 
-    void open(Pos r, Pos c);
-    void nextState(Pos r, Pos c);
+    void open(Pos p);
+    void nextState(Pos p);
 
 private:
     State m_state;
@@ -91,17 +81,12 @@ private:
     Size m_nMines;
     Size m_nHidden;
 
-    PosPair m_lastPos;
+    Pos m_lastPos;
 
     std::vector<Cell> m_cells;
 
-    std::vector<Pos> getNeighbors(Pos p) const;
-    void initCellValues(Pos safeRow, Pos safeCol);
-
-    void open(Pos p);
-
-    Cell& at(Pos r, Pos c);
-    const Cell& at(Pos r, Pos c) const;
+    void initCellValues(Pos safePos);
+    void openRecur(Pos p);
 };
 
 #endif

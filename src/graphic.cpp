@@ -8,13 +8,9 @@
 #include <cstddef>
 #include <string>
 
-
 Graphic::Size Graphic::s_nIns = 0;
+
 const std::string Graphic::SPRITE_PATH = "sprite.png";
-
-const Graphic::Size Graphic::SPRITE_WIDTH_UNIT      = 16;
-const Graphic::Size Graphic::SPRITE_HEIGHT_UNIT     = 16;
-
 std::vector<SDL_Rect> Graphic::SPRITE_RECTS(Graphic::SPRITE_TOTAL);
 
 void Graphic::initSpriteRects()
@@ -56,11 +52,13 @@ void Graphic::initSpriteRects()
 
 
 SDL_Texture* createTexture(SDL_Renderer *, const std::string &);
+bool insideRect(Graphic::Size x, Graphic::Size y, const SDL_Rect &rect);
 
 Graphic::Graphic(const std::string &title, Size w, Size h)
     : m_window(nullptr),
     m_renderer(nullptr),
-    m_spriteTexture(nullptr)
+    m_spriteTexture(nullptr),
+    m_board(nullptr)
 {
     if (s_nIns == 0)
     {
@@ -69,7 +67,6 @@ Graphic::Graphic(const std::string &title, Size w, Size h)
             throw Exception("Can not initialize SDL!");
         }
 
-        
         IMG_InitFlags imgFlag = IMG_INIT_PNG;
         if ((IMG_Init(imgFlag) & imgFlag) != imgFlag)
         {
@@ -118,7 +115,8 @@ Graphic::~Graphic()
     }
 }
 
-SDL_Texture* createTexture(SDL_Renderer *renderer, const std::string &path) {
+SDL_Texture* createTexture(SDL_Renderer *renderer, const std::string &path)
+{
     SDL_Surface *surface = IMG_Load(path.c_str());
     if (surface == nullptr) {
         throw Graphic::Exception("Cannot read image \"" + path + "\"!");
@@ -129,57 +127,58 @@ SDL_Texture* createTexture(SDL_Renderer *renderer, const std::string &path) {
     return texture;
 }
 
-void Graphic::draw(const Board &board, const Util::Rect& rect)
+void Graphic::setBoard(Board *board, const SDL_Rect &boardRect)
 {
-    Board::Size nRows = board.getNRows();
-    Board::Size nCols = board.getNCols();
+    m_board = board;
+    m_boardRect = boardRect;
+    m_cellWidth = boardRect.w / board->getNCols();
+    m_cellHeight = boardRect.h / board->getNRows();
+}
 
-    int32_t wdCellWidth = rect.w / nCols;
-    int32_t wdCellHeight = rect.h / nRows;
-
+void Graphic::draw()
+{
     SDL_RenderClear(m_renderer);
 
-    for (Board::Pos i = 0; i < nRows; i ++) {
-        for (Board::Pos j = 0; j < nCols; j ++){
-            SDL_Rect destRect = {
-                rect.x + j * wdCellWidth,
-                rect.y + i * wdCellHeight,
-                wdCellWidth,
-                wdCellHeight
-            };
+    if (m_board != nullptr)
+    {
+        for (Board::Pos i = 0; i < m_board->getNRows(); i ++) {
+            for (Board::Pos j = 0; j < m_board->getNCols(); j ++){
+                SDL_Rect destRect = {
+                    m_boardRect.x + j * static_cast<Pos>(m_cellWidth),
+                    m_boardRect.y + i * static_cast<Pos>(m_cellHeight),
+                    static_cast<Pos>(m_cellWidth),
+                    static_cast<Pos>(m_cellHeight)
+                };
 
-            SDL_Rect srcRect = getSpriteRect(board, i, j);
-            SDL_RenderCopy(m_renderer, m_spriteTexture, &srcRect, &destRect);
+                SDL_Rect srcRect = getSpriteRect(m_board->convertPos(i, j));
+                SDL_RenderCopy(m_renderer, m_spriteTexture,
+                               &srcRect, &destRect);
+            }
         }
     }
-    SDL_RenderPresent(m_renderer);
 
+    SDL_RenderPresent(m_renderer);
 }
-Board::PosPair Graphic::getBoardPos(const Board & board,
-        const Util::Rect &rect, uint32_t x, uint32_t y)
+
+Board::Pos Graphic::getBoardPos(Graphic::Pos x, Graphic::Pos y)
 {
-    if (x < rect.x || x >= (rect.x + rect.w)
-        || y < rect.y || y >= (rect.y + rect.h))
+    if (!insideRect(x, y, m_boardRect))
     {
-        return Board::PosPair(Board::POS_UNDEFINED, Board::POS_UNDEFINED);
+        return Board::POS_UNDEFINED;
     }
 
-    int32_t wdCellWidth = rect.w / board.getNCols();
-    int32_t wdCellHeight = rect.h / board.getNRows();
+    Board::Pos r = (y - m_boardRect.y) / m_cellHeight;
+    Board::Pos c = (x - m_boardRect.x) / m_cellWidth;
 
-    Board::Pos r = (y - rect.y) / wdCellHeight;
-    Board::Pos c = (x - rect.x) / wdCellWidth;
-
-    return Board::PosPair(r, c);
+    return m_board->convertPos(r, c);
 }
 
-SDL_Rect Graphic::getSpriteRect(const Board &board,
-    Board::Pos r, Board::Pos c)
+SDL_Rect Graphic::getSpriteRect(Board::Pos p)
 {
-    Board::Cell::State cellState = board.getState(r, c);
-    Board::Cell::Value cellValue = board.getValue(r, c);
-    
-    if (board.isWon())
+    Board::Cell::State cellState = m_board->getState(p);
+    Board::Cell::Value cellValue = m_board->getValue(p);
+
+    if (m_board->isWon())
     {
         if (cellValue == Board::Cell::MINE)
         {
@@ -191,13 +190,11 @@ SDL_Rect Graphic::getSpriteRect(const Board &board,
             return SPRITE_RECTS[CELL_ZERO + cellValue];
         }
     }
-    else if (board.isLost())
+    else if (m_board->isLost())
     {
         if (cellValue == Board::Cell::MINE)
         {
-            Board::PosPair lastPos = board.getLastOpenedPos();
-
-            if (r == lastPos.r && c == lastPos.c)
+            if (p == m_board->getLastOpenedPos())
             {
                 return SPRITE_RECTS[CELL_MINE_CURRENT];
             }
@@ -243,4 +240,10 @@ SDL_Rect Graphic::getSpriteRect(const Board &board,
 void Graphic::showError(const std::string &m) {
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
                              "Error", m.c_str(), nullptr);
+}
+
+bool insideRect(Graphic::Size x, Graphic::Size y, const SDL_Rect &rect)
+{
+    return rect.x <= x && x < rect.x + rect.w
+           && rect.y <= y && y < rect.y + rect.h;
 }

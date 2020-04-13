@@ -20,13 +20,14 @@ int main(int argc, char *argv[]) {
         Graphic::Size windowWidth = N_COLS * WINDOW_WIDTH_UNIT;
         Graphic::Size windowHeight = N_ROWS * WINDOW_HEIGHT_UNIT;
 
-        Util::Rect boardRect = {
+        SDL_Rect boardRect = {
             0, 0,
             static_cast<int32_t>(windowWidth),
             static_cast<int32_t>(windowHeight)
         };
 
         Graphic gui("Minesweeper", windowWidth, windowHeight);
+        gui.setBoard(&board, boardRect);
 
         bool quit = false;
         bool redrawRequired = true;
@@ -36,7 +37,7 @@ int main(int argc, char *argv[]) {
         {
             if (redrawRequired)
             {
-                gui.draw(board, boardRect);
+                gui.draw();
                 redrawRequired = false;
             }
             while (SDL_PollEvent(&e) != 0)
@@ -49,26 +50,25 @@ int main(int argc, char *argv[]) {
                 else if (e.type == SDL_MOUSEBUTTONDOWN)
                 {
                     SDL_MouseButtonEvent mouse = e.button;
-                    auto p = gui.getBoardPos(board, boardRect,
-                                             mouse.x, mouse.y);
+                    Board::Pos p = gui.getBoardPos(mouse.x, mouse.y);
 
                     if (mouse.button == SDL_BUTTON_RIGHT)
                     {
-                        board.nextState(p.r, p.c);
+                        board.nextState(p);
                         redrawRequired = true;
                     }
                     else if (mouse.button == SDL_BUTTON_LEFT)
                     {
-                        board.open(p.r, p.c);
+                        board.open(p);
                         redrawRequired = true;
                     }
                 }
-            } 
+            }
         }
     }
     catch (Graphic::Exception &e)
     {
-        Graphic::showError(e.what());    
+        Graphic::showError(e.what());
     }
     return 0;
 }

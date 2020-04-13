@@ -6,7 +6,7 @@
 #if (CANH_DEBUG == 1)
 #   include <iostream>
 #   include <cassert>
-#   define LOG(m) do { std::cout << m << std::endl; } while (0)
+#   define LOG(m) std::cerr << m << std::endl
 #   define ASSERT(exp) assert(exp)
 #else
 #   define LOG(m)
@@ -20,31 +20,13 @@
 class Util
 {
 public:
-    struct Rect
-    {
-        int32_t x, y, w, h;
-    };
-
-    struct Color
-    {
-        uint8_t r, g, b, a;
-
-        Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
-            : r(r), g(g), b(b), a(a)
-        {
-        }
-
-        Color(uint8_t r, uint8_t g, uint8_t b) : r(r), g(g), b(b), a(255) {}
-        Color() : r(0), g(0), b(0), a(255) {}
-    };
-
     Util(const Util &) = delete;
     void operator=(const Util &) = delete;
 
-    static std::default_random_engine getRNG() { return getInstance().m_rng; }
+    static std::default_random_engine getRNG() { return getIns().m_rng; }
 
 private:
-    static Util& getInstance()
+    static Util& getIns()
     {
         static Util ins;
         return ins;
