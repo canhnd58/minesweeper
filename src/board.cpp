@@ -62,6 +62,7 @@ void Board::initCellValues(Board::Pos safePos)
         i ++;
     }
     m_NMines = nMines;
+    m_Timer.start();
 }
 
 void Board::open(Board::Pos p)
@@ -85,6 +86,7 @@ void Board::open(Board::Pos p)
     if (m_State != LOST && m_NHidden == m_NMines)
     {
         m_State = WON;
+        m_Timer.stop();
     }
 }
 
@@ -99,6 +101,7 @@ void Board::openRecur(Board::Pos p)
     if (m_Cells[p].m_Value == Cell::MINE)
     {
         m_State = LOST;
+        m_Timer.stop();
         return;
     }
 
@@ -137,9 +140,11 @@ void Board::nextState(Board::Pos p)
     {
         case Cell::HIDDEN:
             m_Cells[p].m_State = Cell::FLAGGED;
+            m_NFlagged ++;
             break;
         case Cell::FLAGGED:
             m_Cells[p].m_State = Cell::UNKNOWN;
+            m_NFlagged --;
             break;
         case Cell::UNKNOWN:
             m_Cells[p].m_State = Cell::HIDDEN;
@@ -147,4 +152,13 @@ void Board::nextState(Board::Pos p)
         default:
             break;
     }
+}
+
+Board::Size Board::getNMinesRemaining() const
+{
+    if (m_State == WON)
+    {
+        return 0;
+    }
+    return std::max(0, m_NMines - m_NFlagged);
 }

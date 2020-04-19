@@ -3,6 +3,7 @@
 
 #include "board.h"
 #include "util.h"
+#include "timer.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -13,6 +14,10 @@
 class Graphic
 {
 public:
+    typedef uint32_t Size;
+    typedef int32_t Pos;
+    typedef SDL_Rect Rect;
+
     enum Sprite
     {
         CELL_ZERO = 0,
@@ -42,9 +47,9 @@ public:
         COUNT_EIGHT,
         COUNT_NINE,
 
-        EMOJI_PRESSED,
+        EMOJI_SELECTING,
         EMOJI_PLAYING,
-        EMOJI_SELECTED,
+        EMOJI_CELL_SELECTING,
         EMOJI_LOST,
         EMOJI_WON,
 
@@ -57,22 +62,29 @@ public:
         Exception(const std::string &msg) : std::runtime_error(msg) {}
     };
 
-    typedef uint32_t Size;
-    typedef int32_t Pos;
-
     static void showError(const std::string &);
 
     Graphic(const std::string &title, Size w, Size h);
     ~Graphic();
 
-    void setBoard(Board *board, const SDL_Rect &boardRect);
-    void draw();
-    bool handleEvent(const SDL_Event &);
+    void createBoard(Board::Size nRows, Board::Size nCols, Board::Size nMines,
+        const Rect &boardRect);
+
+    void createBanner(const Rect &bannerRect);
+
+    void loop();
 
 private:
     static const std::string SPRITE_PATH;
-    static std::vector<SDL_Rect> SPRITE_RECTS;
 
+    static const Size CELL_W;
+    static const Size CELL_H;
+    static const Size COUNT_W;
+    static const Size COUNT_H;
+    static const Size EMOJI_W;
+    static const Size EMOJI_H;
+
+    static std::vector<SDL_Rect> SPRITE_RECTS;
     static Size s_NIns;
 
     static void initSpriteRects();
@@ -81,20 +93,33 @@ private:
     SDL_Renderer *m_Renderer;
     SDL_Texture *m_SpriteTexture;
     bool m_RedrawRequired;
+    double m_ScaleW;
+    double m_ScaleH;
 
     Board *m_Board;
     SDL_Rect m_BoardRect;
-    Size m_CellWidth;
-    Size m_CellHeight;
     bool m_BoardSelecting;
     Board::Pos m_BoardLastPos;
 
-    void drawBoard();
-    void drawCell(Board::Pos p, const SDL_Rect &spriteRect);
-    void drawCellNeighborsOpening(Board::Pos);
+    SDL_Rect m_BannerRect;
+    SDL_Rect m_EmojiRect;
+    bool m_EmojiSelecting;
 
-    SDL_Rect getSpriteRect(Board::Pos p);
-    Board::Pos getBoardPos(Pos x, Pos y);
+    Timer::Sec m_LastDrawSec;
+
+    bool handleEvent(const SDL_Event &);
+    void draw();
+
+    void drawBoard() const;
+    void drawCell(Board::Pos p, const Rect &spriteRect) const;
+    void drawCellNeighborsOpening(Board::Pos) const;
+
+    void drawRemainingNMines() const;
+    void drawEmoji() const;
+    void drawElapsedSec() const;
+
+    Rect getSpriteRect(Board::Pos p) const;
+    Board::Pos getBoardPos(Pos x, Pos y) const;
 };
 
 #endif

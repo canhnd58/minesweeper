@@ -2,6 +2,7 @@
 #define CANH_BOARD_H
 
 #include "util.h"
+#include "timer.h"
 
 #include <cstdint>
 #include <vector>
@@ -51,6 +52,8 @@ public:
         m_NCols(nCols),
         m_NMines(nMines),
         m_NHidden(nRows * nCols),
+        m_NFlagged(0),
+        m_Timer(),
         m_Cells(nRows * nCols)
     {
     }
@@ -66,6 +69,10 @@ public:
     Size getNMines() const { return m_NMines; }
     Size getNCells() const { return m_NRows * m_NCols; }
 
+    Size getNMinesRemaining() const;
+
+    Timer::Sec getElapsedSec() const { return m_Timer.getSecond(); }
+
     Pos convertPos(Pos r, Pos c) const { return r * m_NCols + c; }
     Pos getRow(Pos p) const { return p / m_NCols; }
     Pos getCol(Pos p) const { return p % m_NCols; }
@@ -80,6 +87,8 @@ private:
     Size m_NCols;
     Size m_NMines;
     Size m_NHidden;
+    Size m_NFlagged;
+    Timer m_Timer;
 
     std::vector<Cell> m_Cells;
 
