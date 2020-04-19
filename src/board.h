@@ -28,11 +28,11 @@ public:
             SHOWN
         };
 
-        Cell() : m_state(HIDDEN), m_value(0) {}
+        Cell() : m_State(HIDDEN), m_Value(0) {}
 
     private:
-        State m_state;
-        Value m_value;
+        State m_State;
+        Value m_Value;
 
         friend class Board;
     };
@@ -46,44 +46,42 @@ public:
     };
 
     Board(Size nRows, Size nCols, Size nMines)
-        : m_state(INIT),
-        m_nRows(nRows),
-        m_nCols(nCols),
-        m_nMines(nMines),
-        m_nHidden(nRows * nCols),
-        m_lastPos(),
-        m_cells(nRows * nCols)
+        : m_State(INIT),
+        m_NRows(nRows),
+        m_NCols(nCols),
+        m_NMines(nMines),
+        m_NHidden(nRows * nCols),
+        m_Cells(nRows * nCols)
     {
     }
 
-    Cell::State getState(Pos p) const { return m_cells[p].m_state; }
-    Cell::Value getValue(Pos p) const { return m_cells[p].m_value; }
+    Cell::State getState(Pos p) const { return m_Cells[p].m_State; }
+    Cell::Value getValue(Pos p) const { return m_Cells[p].m_Value; }
 
-    bool isWon() const { return m_state == WON; }
-    bool isLost() const { return m_state == LOST; }
+    bool isWon() const { return m_State == WON; }
+    bool isLost() const { return m_State == LOST; }
 
-    Size getNRows() const { return m_nRows; }
-    Size getNCols() const { return m_nCols; }
-    Size getNMines() const { return m_nMines; }
-    Size getNCells() const { return m_nRows * m_nCols; }
+    Size getNRows() const { return m_NRows; }
+    Size getNCols() const { return m_NCols; }
+    Size getNMines() const { return m_NMines; }
+    Size getNCells() const { return m_NRows * m_NCols; }
 
-    Pos convertPos(Pos r, Pos c) const { return r * m_nCols + c; }
-    Pos getLastOpenedPos() const { return m_lastPos; }
+    Pos convertPos(Pos r, Pos c) const { return r * m_NCols + c; }
+    Pos getRow(Pos p) const { return p / m_NCols; }
+    Pos getCol(Pos p) const { return p % m_NCols; }
     std::vector<Pos> getNeighbors(Pos p) const;
 
     void open(Pos p);
     void nextState(Pos p);
 
 private:
-    State m_state;
-    Size m_nRows;
-    Size m_nCols;
-    Size m_nMines;
-    Size m_nHidden;
+    State m_State;
+    Size m_NRows;
+    Size m_NCols;
+    Size m_NMines;
+    Size m_NHidden;
 
-    Pos m_lastPos;
-
-    std::vector<Cell> m_cells;
+    std::vector<Cell> m_Cells;
 
     void initCellValues(Pos safePos);
     void openRecur(Pos p);

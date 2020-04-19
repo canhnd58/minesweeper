@@ -12,19 +12,24 @@ std::vector<Board::Pos> Board::getNeighbors(Board::Pos p) const
         return neighbors;
     }
 
-    Pos r = p / m_nCols;
-    Pos c = p % m_nCols;
+    Pos r = getRow(p);
+    Pos c = getCol(p);
 
     for (Pos i = -1; i <= 1; i ++)
     {
         for (Pos j = -1; j <= 1; j++)
         {
+            if (i == 0 && j == 0)
+            {
+                continue;
+            }
             Pos y = r + i;
             Pos x = c + j;
-            if (0 <= y && y < m_nRows && 0 <= x && x < m_nCols)
+            if (y < 0 || y >= m_NRows || x < 0 || x >= m_NCols)
             {
-                neighbors.push_back(y * m_nCols + x);
+                continue;
             }
+            neighbors.push_back(convertPos(y, x));
         }
     }
     return neighbors;
@@ -32,7 +37,7 @@ std::vector<Board::Pos> Board::getNeighbors(Board::Pos p) const
 
 void Board::initCellValues(Board::Pos safePos)
 {
-    std::vector<Size> mines(m_nRows * m_nCols);
+    std::vector<Size> mines(m_NRows * m_NCols);
     for (Size i = 0; i < mines.size(); i ++)
     {
         mines[i] = i;
@@ -40,58 +45,60 @@ void Board::initCellValues(Board::Pos safePos)
     std::shuffle(mines.begin(), mines.end(), Util::getRNG());
 
     Size i = 0, nMines = 0;
-    while (nMines < m_nMines && i < mines.size())
+    while (nMines < m_NMines && i < mines.size())
     {
         if (mines[i] != safePos)
         {
-            m_cells[mines[i]].m_value = Cell::MINE;
+            m_Cells[mines[i]].m_Value = Cell::MINE;
             nMines ++;
             for (Pos p : getNeighbors(mines[i]))
             {
-                if (m_cells[p].m_value != Cell::MINE)
+                if (m_Cells[p].m_Value != Cell::MINE)
                 {
-                    m_cells[p].m_value ++;
+                    m_Cells[p].m_Value ++;
                 }
             }
         }
         i ++;
     }
-    m_nMines = nMines;
+    m_NMines = nMines;
 }
 
 void Board::open(Board::Pos p)
 {
-    if (p == POS_UNDEFINED || m_state == WON || m_state == LOST)
+    if (p == POS_UNDEFINED || m_State == WON || m_State == LOST
+        || m_Cells[p].m_State == Cell::FLAGGED
+        || m_Cells[p].m_State == Cell::UNKNOWN)
     {
         return;
     }
 
-    if (m_state == INIT)
+
+    if (m_State == INIT)
     {
         initCellValues(p);
-        m_state = PLAYING;
+        m_State = PLAYING;
     }
 
-    m_lastPos = p;
     openRecur(p);
 
-    if (m_state != LOST && m_nHidden == m_nMines)
+    if (m_State != LOST && m_NHidden == m_NMines)
     {
-        m_state = WON;
+        m_State = WON;
     }
 }
 
 void Board::openRecur(Board::Pos p)
 {
-    if (m_cells[p].m_state != Cell::SHOWN)
+    if (m_Cells[p].m_State != Cell::SHOWN)
     {
-        m_cells[p].m_state = Cell::SHOWN;
-        m_nHidden --;
+        m_Cells[p].m_State = Cell::SHOWN;
+        m_NHidden --;
     }
 
-    if (m_cells[p].m_value == Cell::MINE)
+    if (m_Cells[p].m_Value == Cell::MINE)
     {
-        m_state = LOST;
+        m_State = LOST;
         return;
     }
 
@@ -100,18 +107,18 @@ void Board::openRecur(Board::Pos p)
 
     for (Pos np: neighbors)
     {
-        if (m_cells[np].m_state == Cell::FLAGGED)
+        if (m_Cells[np].m_State == Cell::FLAGGED)
         {
             nMineFound ++;
         }
     }
 
-    if (nMineFound >= m_cells[p].m_value)
+    if (nMineFound >= m_Cells[p].m_Value)
     {
         for (Pos np : neighbors)
         {
-            if (m_cells[np].m_state != Cell::SHOWN 
-                && m_cells[np].m_state != Cell::FLAGGED)
+            if (m_Cells[np].m_State != Cell::SHOWN
+                && m_Cells[np].m_State != Cell::FLAGGED)
             {
                 openRecur(np);
             }
@@ -126,16 +133,16 @@ void Board::nextState(Board::Pos p)
         return;
     }
 
-    switch (m_cells[p].m_state)
+    switch (m_Cells[p].m_State)
     {
         case Cell::HIDDEN:
-            m_cells[p].m_state = Cell::FLAGGED;
+            m_Cells[p].m_State = Cell::FLAGGED;
             break;
         case Cell::FLAGGED:
-            m_cells[p].m_state = Cell::UNKNOWN;
+            m_Cells[p].m_State = Cell::UNKNOWN;
             break;
         case Cell::UNKNOWN:
-            m_cells[p].m_state = Cell::HIDDEN;
+            m_Cells[p].m_State = Cell::HIDDEN;
             break;
         default:
             break;

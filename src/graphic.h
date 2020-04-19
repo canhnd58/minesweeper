@@ -66,28 +66,35 @@ public:
     ~Graphic();
 
     void setBoard(Board *board, const SDL_Rect &boardRect);
-    Board::Pos getBoardPos(Pos x, Pos y);
-
     void draw();
+    bool handleEvent(const SDL_Event &);
 
 private:
     static const std::string SPRITE_PATH;
     static std::vector<SDL_Rect> SPRITE_RECTS;
 
-    static Size s_nIns;
+    static Size s_NIns;
 
     static void initSpriteRects();
 
-    SDL_Window *m_window;
-    SDL_Renderer *m_renderer;
-    SDL_Texture *m_spriteTexture;
+    SDL_Window *m_Window;
+    SDL_Renderer *m_Renderer;
+    SDL_Texture *m_SpriteTexture;
+    bool m_RedrawRequired;
 
-    Board *m_board;
-    SDL_Rect m_boardRect;
-    Size m_cellWidth;
-    Size m_cellHeight;
+    Board *m_Board;
+    SDL_Rect m_BoardRect;
+    Size m_CellWidth;
+    Size m_CellHeight;
+    bool m_BoardSelecting;
+    Board::Pos m_BoardLastPos;
+
+    void drawBoard();
+    void drawCell(Board::Pos p, const SDL_Rect &spriteRect);
+    void drawCellNeighborsOpening(Board::Pos);
 
     SDL_Rect getSpriteRect(Board::Pos p);
+    Board::Pos getBoardPos(Pos x, Pos y);
 };
 
 #endif
