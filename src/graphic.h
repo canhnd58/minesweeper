@@ -10,6 +10,7 @@
 #include <vector>
 #include <exception>
 #include <string>
+#include <memory>
 
 class Graphic
 {
@@ -96,7 +97,7 @@ private:
     double m_ScaleW;
     double m_ScaleH;
 
-    Board *m_Board;
+    std::unique_ptr<Board> m_Board;
     SDL_Rect m_BoardRect;
     bool m_BoardSelecting;
     Board::Pos m_BoardLastPos;

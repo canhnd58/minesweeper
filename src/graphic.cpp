@@ -8,6 +8,7 @@
 #include <vector>
 #include <cstddef>
 #include <string>
+#include <memory>
 
 const Graphic::Size Graphic::CELL_W     = 16;
 const Graphic::Size Graphic::CELL_H     = 16;
@@ -115,7 +116,6 @@ Graphic::~Graphic()
     s_NIns --;
     ASSERT(s_NIns >= 0);
 
-    delete m_Board;
     SDL_DestroyTexture(m_SpriteTexture);
     SDL_DestroyRenderer(m_Renderer);
     SDL_DestroyWindow(m_Window);
@@ -143,8 +143,7 @@ SDL_Texture* createTexture(SDL_Renderer *renderer, const std::string &path)
 void Graphic::createBoard(Board::Size nRows, Board::Size nCols,
     Board::Size nMines, const SDL_Rect &boardRect)
 {
-    delete m_Board;
-    m_Board = new Board(nRows, nCols, nMines);
+    m_Board = std::make_unique<Board>(nRows, nCols, nMines);
     m_BoardRect = boardRect;
     m_BoardSelecting = false;
     m_BoardLastPos = Board::POS_UNDEFINED;
