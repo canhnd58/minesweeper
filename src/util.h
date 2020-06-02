@@ -20,24 +20,9 @@
 class Util
 {
 public:
-    Util(const Util &) = delete;
-    void operator=(const Util &) = delete;
-
-    static std::default_random_engine getRNG() { return getIns().m_rng; }
-
-private:
-    static Util& getIns()
-    {
-        static Util ins;
-        return ins;
+    static std::default_random_engine getRNG() {
+        return std::default_random_engine(std::chrono::system_clock::now().time_since_epoch().count());
     }
-
-    Util()
-        : m_rng(std::chrono::system_clock::now().time_since_epoch().count())
-    {
-    }
-
-    std::default_random_engine m_rng;
 };
 
 #endif
